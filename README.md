@@ -77,3 +77,26 @@ To use it, run `APP_NAME=basic_example make userspace kernel`.
 If you want to modify the DRuntime that is linked with the application, the source code can be found at `/root/DRuntime/ldc-build-runtime.tmp/ldc-src/runtime/druntime/src` and the files that are compiled and linked together can be modified in the `/root/DRuntime/ldc-build-runtime.tmp/ldc-src/runtime/CMakeLists.txt/` (this is our current version and it is work in progress). 
 
 After modifying the file, just run `cd DRuntime && make delete run`. The new library will be copied at the correct path in the `libtock-d` hierarchy also. 
+
+## Emulate applications using GDB
+
+If you want to emulate an application using `gdb-multicarch`, follow the next steps:
+1. Run 3 docker images (using `make run` for the first one and `make bash` for the next 2).
+2. In the 1st connection, run:
+    * `cd ~/renode && ./renode` - a telnet monitor is created that is waiting for connections on port 1234.
+3. In the 2nd connection, run:
+    * `telnet 127.0.0.1 1234` - connect to the telnet monitor
+    * `mach create`
+    * `machine LoadPlatformDescription @platforms/cpus/stm32f4.repl` - load the emulated board's hardware description
+    * `sysbus LoadELF @/root/tock_d/tock/target/thumbv7em-none-eabi/debug/stm32f4discovery-app.elf` - load the application
+4. In the 3rd connection, run:
+    * `arm-none-eabi-gdb stm32f4discovery-app.elf`
+    * `target remote :3333` - connect to the emulator
+    * add any breakpoints if you need
+5. Switch back to the 2nd connection and run:
+    * `start` - start the application
+6. Switch again to the 3rd connection and run:
+    * `monitor start` - start the serial connection (to see the emulated microcontroller's output)
+    * `continue` - continue running the application.
+
+In the 1st connection will be showed the output of the application. As this is still work in progress, there are some warnings that do not concert us at the moment (`nvic` errors and so on).
